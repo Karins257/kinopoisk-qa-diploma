@@ -1,0 +1,9 @@
+{
+  "ui_base_url": "https://www.kinopoisk.ru",
+  "api_base_url": "https://api.poiskkino.dev",
+  "api_version": "v1.5",
+  "timeout_seconds": 30,
+  "headless": true,
+  "film": {"id": 258687, "name": "Интерстеллар", "en_name": "Interstellar", "year": 2014},
+  "person": {"id": 41477, "name": "Кристофер Нолан", "en_name": "Christopher Nolan"}
+}
