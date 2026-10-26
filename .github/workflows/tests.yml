@@ -24,3 +24,25 @@ jobs:
           path: |
             allure-results
             test-results
+  firefox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BROWSER: firefox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Execute Firefox UI suite
+        run: python -m pytest tests -m ui --maxfail=1 --tb=short --alluredir=allure-results-firefox --junitxml=test-results/firefox-junit.xml
+      - name: Save Firefox reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-evidence
+          path: |
+            allure-results-firefox
+            test-results
