@@ -11,6 +11,7 @@ from secret import ApiKey
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 
@@ -54,6 +55,27 @@ def driver(config: dict[str, Any]) -> Iterator[WebDriver]:
         yield instance
     finally:
         try:
+            links = instance.find_elements(
+                By.CSS_SELECTOR, f'a[href="/film/{config["film"]["id"]}/"]'
+            )
+            diagnostic = {
+                "url": instance.current_url,
+                "title": instance.title,
+                "film_links": len(links),
+                "visible_film_links": sum(link.is_displayed() for link in links),
+                "headings": [
+                    item.text
+                    for item in instance.find_elements(By.CSS_SELECTOR, "h1,h2")
+                ],
+                "page_text_start": instance.find_element(
+                    By.TAG_NAME, "body"
+                ).text[:1200],
+            }
+            print("UI diagnostic: " + json.dumps(diagnostic, ensure_ascii=False))
+            allure.attach(
+                json.dumps(diagnostic, ensure_ascii=False, indent=2),
+                "UI diagnostic", allure.attachment_type.JSON,
+            )
             allure.attach(
                 instance.get_screenshot_as_png(), "Browser state",
                 allure.attachment_type.PNG,
