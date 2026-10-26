@@ -1,0 +1,26 @@
+name: Kinopoisk diploma tests
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      POISKKINO_API_KEY: ${{ secrets.POISKKINO_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Execute complete suite
+        run: python -m pytest tests --maxfail=1 --tb=short --alluredir=allure-results --junitxml=test-results/junit.xml
+      - name: Save reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence
+          path: |
+            allure-results
+            test-results
