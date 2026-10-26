@@ -12,6 +12,7 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.remote.webdriver import WebDriver
 
 
@@ -38,18 +39,27 @@ def api() -> Iterator[requests.Session]:
 
 @pytest.fixture
 def driver(config: dict[str, Any]) -> Iterator[WebDriver]:
-    options = Options()
+    browser_name = os.getenv("BROWSER", "chrome")
+    options: Options | FirefoxOptions = (
+        FirefoxOptions() if browser_name == "firefox" else Options()
+    )
     if config["headless"]:
-        options.add_argument("--headless=new")
-    options.add_argument("--window-size=1366,768")
+        options.add_argument(
+            "-headless" if browser_name == "firefox" else "--headless=new"
+        )
+    if browser_name == "chrome":
+        options.add_argument("--window-size=1366,768")
     binary = os.getenv("CHROME_BINARY")
     if binary:
         options.binary_location = binary
     remote_url = os.getenv("WEBDRIVER_URL")
-    instance = (
-        webdriver.Remote(command_executor=remote_url, options=options)
-        if remote_url else webdriver.Chrome(options=options)
-    )
+    if remote_url:
+        instance = webdriver.Remote(command_executor=remote_url, options=options)
+    elif browser_name == "firefox":
+        instance = webdriver.Firefox(options=options)
+    else:
+        instance = webdriver.Chrome(options=options)
+    instance.set_window_size(1366, 768)
     instance.set_page_load_timeout(config["timeout_seconds"])
     try:
         yield instance
@@ -61,6 +71,9 @@ def driver(config: dict[str, Any]) -> Iterator[WebDriver]:
             diagnostic = {
                 "url": instance.current_url,
                 "title": instance.title,
+                "browser": instance.capabilities.get("browserName"),
+                "browser_version": instance.capabilities.get("browserVersion"),
+                "platform": instance.capabilities.get("platformName"),
                 "film_links": len(links),
                 "visible_film_links": sum(link.is_displayed() for link in links),
                 "headings": [
