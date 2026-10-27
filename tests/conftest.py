@@ -1,5 +1,6 @@
 import json
 import os
+import platform
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,8 @@ def driver(config: dict[str, Any]) -> Iterator[WebDriver]:
                 "browser": instance.capabilities.get("browserName"),
                 "browser_version": instance.capabilities.get("browserVersion"),
                 "platform": instance.capabilities.get("platformName"),
+                "os_release": platform.freedesktop_os_release()
+                if platform.system() == "Linux" else {"system": platform.platform()},
                 "film_links": len(links),
                 "visible_film_links": sum(link.is_displayed() for link in links),
                 "headings": [
