@@ -1,5 +1,6 @@
 """Public read-only scenarios. No login, purchases or anti-bot bypass."""
 from typing import Any
+from urllib.parse import urlparse
 
 import allure
 from selenium.webdriver.common.by import By
@@ -29,15 +30,42 @@ class KinopoiskPage:
         )))
         field.clear()
         field.send_keys(query)
+        assert field.get_attribute("value") == query
         field.send_keys(Keys.ENTER)
         self.wait.until(ec.url_contains("/new-search/"))
 
     @allure.step("Find film link in search results")
     def wait_film_result(self) -> None:
-        film_id = self.config["film"]["id"]
-        self.wait.until(ec.visibility_of_element_located((
-            By.CSS_SELECTOR, f'a[href="/film/{film_id}/"]'
-        )))
+        film = self.config["film"]
+
+        def matches_result(driver: WebDriver) -> bool:
+            links = driver.find_elements(
+                By.CSS_SELECTOR, f'a[href="/film/{film["id"]}/"]'
+            )
+            return any(
+                link.is_displayed()
+                and film["name"] in link.text
+                and str(film["year"]) in link.text
+                for link in links
+            )
+
+        self.wait.until(matches_result)
+
+    @allure.step("Check current page path: {expected}")
+    def path(self, expected: str) -> None:
+        self.wait.until(lambda driver: urlparse(driver.current_url).path == expected)
+
+    @allure.step("Check film detail row: {label} = {expected}")
+    def detail(self, label: str, expected: str) -> None:
+        locator = (By.XPATH, f'//*[normalize-space()="{label}"]/parent::*')
+
+        def matches_row(driver: WebDriver) -> bool:
+            return any(
+                row.is_displayed() and expected in row.text
+                for row in driver.find_elements(*locator)
+            )
+
+        self.wait.until(matches_row)
 
     @allure.step("Wait for heading: {expected}")
     def heading(self, expected: str) -> None:
@@ -46,14 +74,20 @@ class KinopoiskPage:
     @allure.step("Open configured film card")
     def film(self) -> None:
         self.open(f'/film/{self.config["film"]["id"]}/')
-        self.heading(self.config["film"]["name"])
+        self.path(f'/film/{self.config["film"]["id"]}/')
+        self.heading(
+            f'{self.config["film"]["name"]} ({self.config["film"]["year"]})'
+        )
 
     @allure.step("Open director from film credits")
     def director(self) -> None:
         person_id = self.config["person"]["id"]
         self.wait.until(ec.element_to_be_clickable((
-            By.CSS_SELECTOR, f'a[href="/name/{person_id}/"]'
+            By.XPATH,
+            '//*[normalize-space()="Режиссер"]/parent::*'
+            f'//a[@href="/name/{person_id}/"]',
         ))).click()
+        self.path(f'/name/{person_id}/')
         self.heading(self.config["person"]["name"])
 
     @allure.step("Open film from person's best movies")
@@ -61,7 +95,10 @@ class KinopoiskPage:
         self.wait.until(ec.element_to_be_clickable((
             By.LINK_TEXT, self.config["film"]["name"]
         ))).click()
-        self.heading(self.config["film"]["name"])
+        self.path(f'/film/{self.config["film"]["id"]}/')
+        self.heading(
+            f'{self.config["film"]["name"]} ({self.config["film"]["year"]})'
+        )
 
     @allure.step("Check page contains: {text}")
     def contains(self, text: str) -> None:
