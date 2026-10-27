@@ -39,8 +39,8 @@ def test_film_year(driver: WebDriver, config: dict[str, Any]) -> None:
 def test_film_credits(driver: WebDriver, config: dict[str, Any]) -> None:
     page = KinopoiskPage(driver, config)
     page.film()
-    page.contains(config["person"]["name"])
-    page.contains("фантастика")
+    page.detail("Режиссер", config["person"]["name"])
+    page.detail("Жанр", "фантастика")
 
 
 @allure.title("UI-05: Director page from film card")
