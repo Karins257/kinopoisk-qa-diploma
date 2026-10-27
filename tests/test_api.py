@@ -83,6 +83,7 @@ def test_no_key(api: requests.Session, config: dict[str, Any]) -> None:
     with allure.step("Check unauthorized error"):
         assert data["statusCode"] == 401
         assert data["error"] == "Unauthorized"
+        assert data["message"]
 
 
 @allure.title("API-06: Reject zero page size")
